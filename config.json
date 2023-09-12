@@ -13,7 +13,7 @@
     "coefficient_ratio": "equal",
     "run_name": "",
     "fishers": "None",
-    "from_pt": "True",
+    "from_pt": true,
     "split": "validation",
     "n_examples": 4096,
     "batch_size": 32,
