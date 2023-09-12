@@ -12,10 +12,6 @@ def get_body_and_head(
     body, *head = model.layers
     if not head:
         head = None
-    elif len(head) > 1:
-        raise ValueError(
-            f"Expected model to have a single 'head' layer. Instead found {len(head)}. TODO: Support this."
-        )
     else:
         head = head[0]
     return body, head

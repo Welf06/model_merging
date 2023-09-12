@@ -1,0 +1,15 @@
+{
+    "device": "cuda",
+    "desc": "",
+    "base_model_name": "bert-base-uncased",
+    "checkpoint_names": {
+        "rte" : "textattack/bert-base-uncased-RTE",
+        "mrpc": "textattack/bert-base-uncased-MRPC"
+    },
+    "constraint": null,
+    "use_saved": false,
+    "num_at_once": 2,
+    "seed": 0,
+    "coefficient_ratio": "equal",
+    "run_name": ""
+}

@@ -1,0 +1,23 @@
+{
+    "desc": "",
+    "tasks": [
+        "rte",
+        "mrpc"
+    ],
+    "checkpoints": [
+        "textattack/bert-base-uncased-RTE",
+        "textattack/bert-base-uncased-MRPC"
+    ],
+    "seed": 0,
+    "metrics": {
+        "rte_mrpc": {
+            "rte": {
+                "accuracy": 0.6389891696750902
+            },
+            "mrpc": {
+                "accuracy": 0.7745098039215687,
+                "f1": 0.8283582089552239
+            }
+        }
+    }
+}

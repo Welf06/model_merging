@@ -1,0 +1,210 @@
+{
+    "desc": "Added RTE, not using universal mask and instead averaging",
+    "tasks": [
+        "mnli",
+        "qqp",
+        "qnli",
+        "sst2",
+        "stsb",
+        "mrpc",
+        "rte"
+    ],
+    "checkpoints": [
+        "JeremiahZ/bert-base-uncased-mnli",
+        "textattack/bert-base-uncased-QQP",
+        "textattack/bert-base-uncased-QNLI",
+        "textattack/bert-base-uncased-SST-2",
+        "textattack/bert-base-uncased-STS-B",
+        "textattack/bert-base-uncased-MRPC",
+        "textattack/bert-base-uncased-RTE"
+    ],
+    "seed": 0,
+    "metrics": {
+        "mnli_qqp": {
+            "mnli": {
+                "accuracy": 0.7814569536423841
+            },
+            "qqp": {
+                "accuracy": 0.8216670789018056,
+                "f1": 0.7794432548179872
+            }
+        },
+        "mnli_qnli": {
+            "mnli": {
+                "accuracy": 0.7213448802852777
+            },
+            "qnli": {
+                "accuracy": 0.838975297346752
+            }
+        },
+        "mnli_sst2": {
+            "mnli": {
+                "accuracy": 0.8232297503820682
+            },
+            "sst2": {
+                "accuracy": 0.84
+            }
+        },
+        "mnli_stsb": {
+            "mnli": {
+                "accuracy": 0.5573102394294447
+            },
+            "stsb": {
+                "pearson": 0.8664959861308594,
+                "spearmanr": 0.8696539315216298
+            }
+        },
+        "mnli_mrpc": {
+            "mnli": {
+                "accuracy": 0.7890983188996434
+            },
+            "mrpc": {
+                "accuracy": 0.7439024390243902,
+                "f1": 0.8073394495412844
+            }
+        },
+        "mnli_rte": {
+            "mnli": {
+                "accuracy": 0.7702496179317372
+            },
+            "rte": {
+                "accuracy": 0.6964285714285714
+            }
+        },
+        "qqp_qnli": {
+            "qqp": {
+                "accuracy": 0.815483551817957,
+                "f1": 0.7730453300882262
+            },
+            "qnli": {
+                "accuracy": 0.8755718206770357
+            }
+        },
+        "qqp_sst2": {
+            "qqp": {
+                "accuracy": 0.8611179816967598,
+                "f1": 0.8363212359714327
+            },
+            "sst2": {
+                "accuracy": 0.5314285714285715
+            }
+        },
+        "qqp_stsb": {
+            "qqp": {
+                "accuracy": 0.5925055651743755,
+                "f1": 0.6243301789989739
+            },
+            "stsb": {
+                "pearson": 0.8787511681735409,
+                "spearmanr": 0.8805513498093924
+            }
+        },
+        "qqp_mrpc": {
+            "qqp": {
+                "accuracy": 0.8295819935691319,
+                "f1": 0.8058060879368659
+            },
+            "mrpc": {
+                "accuracy": 0.7560975609756098,
+                "f1": 0.8387096774193548
+            }
+        },
+        "qqp_rte": {
+            "qqp": {
+                "accuracy": 0.8398466485283206,
+                "f1": 0.813803019410496
+            },
+            "rte": {
+                "accuracy": 0.5714285714285714
+            }
+        },
+        "qnli_sst2": {
+            "qnli": {
+                "accuracy": 0.8993595608417201
+            },
+            "sst2": {
+                "accuracy": 0.8171428571428572
+            }
+        },
+        "qnli_stsb": {
+            "qnli": {
+                "accuracy": 0.7264409881061299
+            },
+            "stsb": {
+                "pearson": 0.8617333561689098,
+                "spearmanr": 0.8619780452752523
+            }
+        },
+        "qnli_mrpc": {
+            "qnli": {
+                "accuracy": 0.8856358645928637
+            },
+            "mrpc": {
+                "accuracy": 0.7439024390243902,
+                "f1": 0.8320000000000001
+            }
+        },
+        "qnli_rte": {
+            "qnli": {
+                "accuracy": 0.8545288197621226
+            },
+            "rte": {
+                "accuracy": 0.5892857142857143
+            }
+        },
+        "sst2_stsb": {
+            "sst2": {
+                "accuracy": 0.49142857142857144
+            },
+            "stsb": {
+                "pearson": 0.8903152577948126,
+                "spearmanr": 0.8905872162675539
+            }
+        },
+        "sst2_mrpc": {
+            "sst2": {
+                "accuracy": 0.7485714285714286
+            },
+            "mrpc": {
+                "accuracy": 0.6829268292682927,
+                "f1": 0.8030303030303031
+            }
+        },
+        "sst2_rte": {
+            "sst2": {
+                "accuracy": 0.8342857142857143
+            },
+            "rte": {
+                "accuracy": 0.5714285714285714
+            }
+        },
+        "stsb_mrpc": {
+            "stsb": {
+                "pearson": 0.8832540176830164,
+                "spearmanr": 0.8856763930839038
+            },
+            "mrpc": {
+                "accuracy": 0.5975609756097561,
+                "f1": 0.5479452054794521
+            }
+        },
+        "stsb_rte": {
+            "stsb": {
+                "pearson": 0.8853370256284606,
+                "spearmanr": 0.886475213796555
+            },
+            "rte": {
+                "accuracy": 0.5178571428571429
+            }
+        },
+        "mrpc_rte": {
+            "mrpc": {
+                "accuracy": 0.7560975609756098,
+                "f1": 0.8333333333333333
+            },
+            "rte": {
+                "accuracy": 0.5892857142857143
+            }
+        }
+    }
+}
