@@ -11,5 +11,16 @@
     "num_at_once": 2,
     "seed": 0,
     "coefficient_ratio": "equal",
-    "run_name": ""
+    "run_name": "",
+    "fishers": "None",
+    "from_pt": "True",
+    "split": "validation",
+    "n_examples": 4096,
+    "batch_size": 32,
+    "sequence_length": 128,
+    "n_coeffs": 51,
+    "coeff_mode": "grid",
+    "fisher_floor": 1e-6,
+    "favor_target_model": true,
+    "normalize_fishers": true
 }
