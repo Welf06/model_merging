@@ -133,11 +133,11 @@ def merging_coefficients_search(
         favor_target_model=favor_target_model,
         normalize_fishers=normalize_fishers,
     )
-    results = []
-    for coeffs, merged_model in merged_models:
-        score = evaluation.evaluate_model(merged_model, dataset, metric)
-        result = MergeResult(coefficients=coeffs, score=score)
-        results.append(result)
-        if print_results:
-            print_merge_result(result)
-    return results
+    # results = []
+    # for coeffs, merged_model in merged_models:
+    #     score = evaluation.evaluate_model(merged_model, dataset, metric)
+    #     result = MergeResult(coefficients=coeffs, score=score)
+    #     results.append(result)
+    #     if print_results:
+    #         print_merge_result(result)
+    return merged_models

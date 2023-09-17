@@ -2,6 +2,8 @@
 import os
 import json
 from datetime import datetime
+import collections
+
 
 from absl import app
 from absl import flags
@@ -14,29 +16,29 @@ from model_merging import evaluation
 from model_merging import hdf5_util
 from model_merging import merging
 
-FLAGS = flags.FLAGS
+# FLAGS = flags.FLAGS
 
 # TODO: Add descriptions to flags
 
 # The target model will be first.
-flags.DEFINE_list("models", None, "")
-flags.DEFINE_string("glue_task", None, "")
+# flags.DEFINE_list("models", None, "")
+# flags.DEFINE_string("glue_task", None, "")
 
-flags.DEFINE_list("fishers", None, "")
+# flags.DEFINE_list("fishers", None, "")
 
-flags.DEFINE_bool("from_pt", True, "")
+# flags.DEFINE_bool("from_pt", True, "")
 
-flags.DEFINE_string("split", "validation", "")
-flags.DEFINE_integer("n_examples", 4096, "")
-flags.DEFINE_integer("batch_size", 32, "")
-flags.DEFINE_integer("sequence_length", 128, "")
+# flags.DEFINE_string("split", "validation", "")
+# flags.DEFINE_integer("n_examples", 4096, "")
+# flags.DEFINE_integer("batch_size", 32, "")
+# flags.DEFINE_integer("sequence_length", 128, "")
 
-flags.DEFINE_integer("n_coeffs", 51, "")
-flags.DEFINE_enum("coeff_mode", "grid", ["grid", "random"], "")
+# flags.DEFINE_integer("n_coeffs", 51, "")
+# flags.DEFINE_enum("coeff_mode", "grid", ["grid", "random"], "")
 
-flags.DEFINE_float("fisher_floor", 1e-6, "")
-flags.DEFINE_bool("favor_target_model", True, "")
-flags.DEFINE_bool("normalize_fishers", True, "")
+# flags.DEFINE_float("fisher_floor", 1e-6, "")
+# flags.DEFINE_bool("favor_target_model", True, "")
+# flags.DEFINE_bool("normalize_fishers", True, "")
 
 
 # get config from config.json
@@ -53,6 +55,8 @@ metrics = {
     "metrics": {}
     }
 
+MergeResult = collections.namedtuple("MergeResult", ["coefficients", "score"])
+
 def load_models(tasks):
     models = []
     tokenizers = []
@@ -61,7 +65,7 @@ def load_models(tasks):
         print("model_str: ", model_str)
         model_str = os.path.expanduser(model_str)
         model = TFAutoModelForSequenceClassification.from_pretrained(
-            model_str, from_pt=FLAGS.from_pt
+            model_str, from_pt=config["from_pt"]
         )
         models.append(model)
         tokenizer = AutoTokenizer.from_pretrained(model_str)
@@ -70,10 +74,10 @@ def load_models(tasks):
 
 
 def load_fishers():
-    if not FLAGS.fishers:
+    if config["fishers"] == "None":
         return None
     fishers = []
-    for fisher_str in FLAGS.fishers:
+    for fisher_str in config["fishers"]:
         fisher_str = os.path.expanduser(fisher_str)
         fisher = hdf5_util.load_variables_from_hdf5(fisher_str, trainable=False)
         fishers.append(fisher)
@@ -87,11 +91,11 @@ def get_coeffs_set(
     if coefficient_ratio == "equal":
       return [(0.5, 0.5)]
     elif coefficient_ratio == "best":
-      if FLAGS.coeff_mode == "grid":
+      if config["coeff_mode"] == "grid":
          assert n_models == 2
-         return merging.create_pairwise_grid_coeffs(FLAGS.n_coeffs)
-      elif FLAGS.coeff_mode == "random":
-         return merging.create_random_coeffs(n_models, FLAGS.n_coeffs)
+         return merging.create_pairwise_grid_coeffs(config["n_coeffs"])
+      elif config["coeff_mode"] == "random":
+         return merging.create_random_coeffs(n_models, config["n_coeffs"])
       else:
          raise ValueError
     else:
@@ -109,9 +113,15 @@ def get_best_average_results(results):
       print(results)
       return max(enumerate(results), key=lambda x: (x[1][0] + x[1][1]) / 2)[0]
  
-def main(_):
-    if FLAGS.fishers:
-        assert len(FLAGS.fishers) == len(FLAGS.models)
+def print_merge_result(result: MergeResult):
+    print(f"Merging coefficients: {result.coefficients}")
+    print("Scores:")
+    for name, value in result.score.items():
+        print(f"  {name}: {value}")
+        
+def main():
+    if config["fishers"] != "None":
+        assert len(config["fishers"]) == len(config["checkpoint_names)"])
     for tasks in combinations(all_tasks, config["num_at_once"]):
       metrics['metrics']["_".join(tasks)] = {}
       models, tokenizers = load_models(tasks)
@@ -130,27 +140,34 @@ def main(_):
       for i, task in enumerate(tasks):
          ds = data.load_glue_dataset(
             task=task,
-            split=FLAGS.split,
+            split=config["split"],
             tokenizer=tokenizers[i],
-            max_length=FLAGS.sequence_length,
+            max_length=config["sequence_length"],
          )
-         ds = ds.take(FLAGS.n_examples).batch(FLAGS.batch_size)
+         ds = ds.take(config["n_examples"]).batch(config["batch_size"])
 
          metric = evaluation.load_metric_for_glue_task(task)
          print(80 * "*")
          print(task)
          print(80 * "*")
          
-         result = merging.merging_coefficients_search(
+         merged_models = merging.merging_coefficients_search(
             models,
             coefficients_set=coefficients_set,
             dataset=ds,
             metric=metric,
             fishers=fishers,
-            fisher_floor=FLAGS.fisher_floor,
-            favor_target_model=FLAGS.favor_target_model,
-            normalize_fishers=FLAGS.normalize_fishers,
+            fisher_floor=config["fisher_floor"],
+            favor_target_model=config["favor_target_model"],
+            normalize_fishers=config["normalize_fishers"],
          )
+         result = []
+         for coeffs, merged_model in merged_models:
+            score = evaluation.evaluate_model(merged_model, ds, metric)
+            res = MergeResult(coefficients=coeffs, score=score)
+            result.append(res)
+            print_merge_result(res)
+            
          models = models[1:] + models[:1]
          print(result)
          results.append(result)
@@ -187,4 +204,5 @@ def main(_):
     #     json.dump(metrics, f, indent=4)
       
 if __name__ == "__main__":
-    app.run(main)
+    # app.run(main)
+    main()
