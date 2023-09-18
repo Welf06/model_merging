@@ -117,13 +117,10 @@ def generate_merged_for_coeffs_set(
 def merging_coefficients_search(
     mergeable_models,
     coefficients_set: Sequence[Sequence[float]],
-    dataset: tf.data.Dataset,
-    metric: hfds.Metric,
     fishers=None,
     fisher_floor: float = 1e-6,
     favor_target_model=True,
     normalize_fishers=True,
-    print_results=True,
 ):
     merged_models = generate_merged_for_coeffs_set(
         mergeable_models,
@@ -133,6 +130,15 @@ def merging_coefficients_search(
         favor_target_model=favor_target_model,
         normalize_fishers=normalize_fishers,
     )
+    #     mergeable_models,
+    # coefficients_set: Sequence[Sequence[float]],
+    # dataset: tf.data.Dataset,
+    # metric: hfds.Metric,
+    # fishers=None,
+    # fisher_floor: float = 1e-6,
+    # favor_target_model=True,
+    # normalize_fishers=True,
+    # print_results=True,
     # results = []
     # for coeffs, merged_model in merged_models:
     #     score = evaluation.evaluate_model(merged_model, dataset, metric)
