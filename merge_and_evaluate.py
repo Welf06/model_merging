@@ -1,56 +1,40 @@
+# get config from config.json
+import json
+
+with open("config.json") as f:
+    config = json.load(f)
+    
+from model_evaluator import ModelEvaluator
+
+evaluator = ModelEvaluator(device="not-cuda", seed=config["seed"], split=config["split"])
+
 """Script for actually merging models."""
 import os
-import json
 from datetime import datetime
 import collections
-
 
 from absl import app
 from absl import flags
 from absl import logging
 from itertools import combinations
-from transformers import TFAutoModelForSequenceClassification, AutoTokenizer
+from transformers import TFAutoModelForSequenceClassification, AutoTokenizer, AutoModelForSequenceClassification
 
 from model_merging import data
 from model_merging import evaluation
 from model_merging import hdf5_util
 from model_merging import merging
 
-# FLAGS = flags.FLAGS
-
-# TODO: Add descriptions to flags
-
-# The target model will be first.
-# flags.DEFINE_list("models", None, "")
-# flags.DEFINE_string("glue_task", None, "")
-
-# flags.DEFINE_list("fishers", None, "")
-
-# flags.DEFINE_bool("from_pt", True, "")
-
-# flags.DEFINE_string("split", "validation", "")
-# flags.DEFINE_integer("n_examples", 4096, "")
-# flags.DEFINE_integer("batch_size", 32, "")
-# flags.DEFINE_integer("sequence_length", 128, "")
-
-# flags.DEFINE_integer("n_coeffs", 51, "")
-# flags.DEFINE_enum("coeff_mode", "grid", ["grid", "random"], "")
-
-# flags.DEFINE_float("fisher_floor", 1e-6, "")
-# flags.DEFINE_bool("favor_target_model", True, "")
-# flags.DEFINE_bool("normalize_fishers", True, "")
-
-
-# get config from config.json
-with open("config.json") as f:
-    config = json.load(f)
+# config["checkpoint_names"] = {
+#       "mrpc": "textattack/bert-base-uncased-MRPC",
+#       "rte": "textattack/bert-base-uncased-RTE"
+# }
 all_tasks = config["checkpoint_names"].keys()
 all_checkpoints = config["checkpoint_names"].values()
 
 metrics = {
     "desc": config["desc"],
-    "tasks": tuple(all_tasks), 
-    "checkpoints": tuple(all_checkpoints), 
+    "tasks": tuple(all_tasks),
+    "checkpoints": tuple(all_checkpoints),
     "seed": config["seed"],
     "metrics": {}
     }
@@ -59,7 +43,7 @@ MergeResult = collections.namedtuple("MergeResult", ["coefficients", "score"])
 
 def load_models(tasks):
     models = []
-    tokenizers = []
+    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
     for i, model_str in enumerate(tasks):
         model_str = config["checkpoint_names"][model_str]
         print("model_str: ", model_str)
@@ -68,9 +52,7 @@ def load_models(tasks):
             model_str, from_pt=config["from_pt"]
         )
         models.append(model)
-        tokenizer = AutoTokenizer.from_pretrained(model_str)
-        tokenizers.append(tokenizer)
-    return models, tokenizers
+    return models, tokenizer
 
 
 def load_fishers():
@@ -101,108 +83,59 @@ def get_coeffs_set(
     else:
       raise ValueError
 
-
-def average_score(score):
-    return sum(score.values()) / len(score.values())
- 
-def get_best_results(results):
-    return max(results, key=lambda r: average_score(r.score))
-
-def get_best_average_results(results):
-      results = [(average_score(r[0].score), average_score(r[1].score)) for r in results]
-      print(results)
-      return max(enumerate(results), key=lambda x: (x[1][0] + x[1][1]) / 2)[0]
- 
-def print_merge_result(result: MergeResult):
-    print(f"Merging coefficients: {result.coefficients}")
-    print("Scores:")
-    for name, value in result.score.items():
-        print(f"  {name}: {value}")
-        
 def main():
     if config["fishers"] != "None":
         assert len(config["fishers"]) == len(config["checkpoint_names)"])
+
     for tasks in combinations(all_tasks, config["num_at_once"]):
       metrics['metrics']["_".join(tasks)] = {}
-      models, tokenizers = load_models(tasks)
 
+      models, tokenizer = load_models(tasks)
       fishers = load_fishers()
-      
+
       coefficients_set = get_coeffs_set(
             coefficient_ratio=config["coefficient_ratio"],
             n_models = len(models)
          )
-      
-      results = []
-      print('_'*80)
-      print(f"    Evaluating {'_'.join(tasks)}")
-      print('_'*80)
-      for i, task in enumerate(tasks):
-         ds = data.load_glue_dataset(
-            task=task,
-            split=config["split"],
-            tokenizer=tokenizers[i],
-            max_length=config["sequence_length"],
-         )
-         ds = ds.take(config["n_examples"]).batch(config["batch_size"])
 
-         metric = evaluation.load_metric_for_glue_task(task)
-         print(80 * "*")
-         print(task)
-         print(80 * "*")
-         
-         merged_models = merging.merging_coefficients_search(
-            models,
-            coefficients_set=coefficients_set,
-            dataset=ds,
-            metric=metric,
-            fishers=fishers,
-            fisher_floor=config["fisher_floor"],
-            favor_target_model=config["favor_target_model"],
-            normalize_fishers=config["normalize_fishers"],
-         )
-         result = []
-         for coeffs, merged_model in merged_models:
-            score = evaluation.evaluate_model(merged_model, ds, metric)
-            res = MergeResult(coefficients=coeffs, score=score)
-            result.append(res)
-            print_merge_result(res)
-            
-         models = models[1:] + models[:1]
-         print(result)
-         results.append(result)
-         best = get_best_results(result)
-         print("Best Merge")
-         print(f"Merging coefficients: {best.coefficients}")
-         print("Scores:")
-         for name, value in best.score.items():
-            print(f"  {name}: {value}")
-      temp = [(r1, r2) for r1, r2 in zip(results[0], results[1])]
-      print(results)
-      best_idx = get_best_average_results(temp)
-      best_t1 = results[0][best_idx]
-      best_t2 = results[1][best_idx]
-      metrics['metrics']["_".join(tasks)][tasks[0]] = best_t1.score
-      metrics['metrics']["_".join(tasks)][tasks[1]] = best_t2.score
-      
-      print(80 * "*")
-      print(" Best Average Merge")
-      print(80 * "*")
-      print(f"Merging coefficients: {best_t1.coefficients}")
-      print(tasks[0])
-      for name, value in best_t1.score.items():
-            print(f"  {name}: {value}")
-      print(tasks[1])
-      for name, value in best_t2.score.items():
-            print(f"  {name}: {value}")
-      
-    print(metrics)
-    # os.makedirs("metrics", exist_ok=True)
-    # current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    # metric_filename = "_".join([current_time, config["run_name"]]) + ".json"
-    # with open(os.path.join("metrics", metric_filename), "w") as f:
-    #     json.dump(metrics, f, indent=4)
-      
+      print(f"Merging {'_'.join(tasks)}")
+
+      merged_models = merging.merging_coefficients_search(
+        models,
+        coefficients_set=coefficients_set,
+        fishers=fishers,
+        fisher_floor=config["fisher_floor"],
+        favor_target_model=config["favor_target_model"],
+        normalize_fishers=config["normalize_fishers"],
+      )
+
+      for coeffs, merged_model in merged_models:
+        merged_model.save_pretrained(f"{'_'.join(tasks)}")
+
 if __name__ == "__main__":
     # app.run(main)
     main()
+    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+    for tasks in combinations(all_tasks, config["num_at_once"]):
+        print(f"{'_'.join(tasks)}")
+        model = AutoModelForSequenceClassification.from_pretrained(f"{'_'.join(tasks)}", from_tf=True)
+        metric = {}
+        for task in tasks:
+            print(f"{task}")
+            base_model = AutoModelForSequenceClassification.from_pretrained( config["checkpoint_names"][task])
+            print("Base Model")
+            res = evaluator.evaluate(base_model, tokenizer, task, batch_size=8)
+            print(res)
+            base_model.base_model.load_state_dict(model.base_model.state_dict())
+            print("Merged Model with base model head")
+            res = evaluator.evaluate(base_model, tokenizer, task, batch_size=8)
+            print(res)
+            metric[task] = res
+        metrics["metrics"]['_'.join(tasks)] = metric
+    print(metrics)
+    # save metrics in a json file
+    os.makedirs("metrics", exist_ok=True)
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    metric_filename = "_".join([current_time, config["run_name"]]) + ".json"
+    with open(os.path.join("metrics", metric_filename), "w") as f:
+        json.dump(metrics, f, indent=4)
