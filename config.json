@@ -17,7 +17,7 @@
     "seed": 0,
     "coefficient_ratio": "equal",
     "run_name": "",
-    "fishers": "None",
+    "fishers": "train",
     "from_pt": true,
     "split": "validation",
     "n_examples": 4096,

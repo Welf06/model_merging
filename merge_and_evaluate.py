@@ -1,17 +1,8 @@
-# get config from config.json
-import json
-
-with open("config.json") as f:
-    config = json.load(f)
-    
-from model_evaluator import ModelEvaluator
-
-evaluator = ModelEvaluator(device="not-cuda", seed=config["seed"], split=config["split"])
-
 """Script for actually merging models."""
 import os
 from datetime import datetime
 import collections
+import json
 
 from absl import app
 from absl import flags
@@ -23,11 +14,17 @@ from model_merging import data
 from model_merging import evaluation
 from model_merging import hdf5_util
 from model_merging import merging
+from model_evaluator import ModelEvaluator
 
-# config["checkpoint_names"] = {
-#       "mrpc": "textattack/bert-base-uncased-MRPC",
-#       "rte": "textattack/bert-base-uncased-RTE"
-# }
+# get config
+with open("config.json") as f:
+    config = json.load(f)
+
+config["checkpoint_names"] = {
+      "rte": "textattack/bert-base-uncased-RTE",
+      "mrpc": "textattack/bert-base-uncased-MRPC"
+}
+
 all_tasks = config["checkpoint_names"].keys()
 all_checkpoints = config["checkpoint_names"].values()
 
@@ -39,7 +36,8 @@ metrics = {
     "metrics": {}
     }
 
-MergeResult = collections.namedtuple("MergeResult", ["coefficients", "score"])
+# load the evaluator 
+evaluator = ModelEvaluator(device="not-cuda", seed=config["seed"], split=config["split"])
 
 def load_models(tasks):
     models = []
@@ -55,11 +53,12 @@ def load_models(tasks):
     return models, tokenizer
 
 
-def load_fishers():
+def load_fishers(tasks):
     if config["fishers"] == "None":
         return None
     fishers = []
-    for fisher_str in config["fishers"]:
+    for task in tasks:
+        fisher_str = os.path.join("fishers_"+config["fishers"], task + "_fisher.h5")
         fisher_str = os.path.expanduser(fisher_str)
         fisher = hdf5_util.load_variables_from_hdf5(fisher_str, trainable=False)
         fishers.append(fisher)
@@ -84,14 +83,14 @@ def get_coeffs_set(
       raise ValueError
 
 def main():
-    if config["fishers"] != "None":
-        assert len(config["fishers"]) == len(config["checkpoint_names)"])
+    # if config["fishers"] != "None":
+    #     assert len(config["fishers"]) == len(config["checkpoint_names"])
 
     for tasks in combinations(all_tasks, config["num_at_once"]):
       metrics['metrics']["_".join(tasks)] = {}
 
       models, tokenizer = load_models(tasks)
-      fishers = load_fishers()
+      fishers = load_fishers(tasks)
 
       coefficients_set = get_coeffs_set(
             coefficient_ratio=config["coefficient_ratio"],
