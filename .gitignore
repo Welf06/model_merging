@@ -1,5 +1,8 @@
 /local_scripts/
-
+/metrics/
+/merged_models/
+/fishers/
+config.json
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

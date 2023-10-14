@@ -47,7 +47,7 @@ class ModelEvaluator:
             continue
 
 
-   def evaluate(self, model, tokenizer, task, batch_size=None, change_id_mnli=False):
+   def evaluate(self, model, tokenizer, task, batch_size=4, change_id_mnli=False):
       """
       Evaluates the Given Model and Returns the Metrics for the specified GLUE task
 
@@ -66,10 +66,7 @@ class ModelEvaluator:
 
       testing_set = self.datasets[task]['testing_set']
 
-      if batch_size == None or batch_size > len(testing_set):
-         batch_size = len(testing_set)
-
-      self.model = model
+      self.model = model.to(self.device)
       model.eval()
       
       self.tokenizer = tokenizer

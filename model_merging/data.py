@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
 from transformers.data.processors import glue as hf_glue
-
+from tqdm import tqdm
 
 _glue_processors = hf_glue.glue_processors
 _glue_output_modes = hf_glue.glue_output_modes
@@ -52,7 +52,9 @@ def _convert_dataset_to_features(
         label_map = {label: i for i, label in enumerate(label_list)}
 
     def py_map_fn(keys, *values):
+        # print(keys, values)
         example = {tf.compat.as_str(k.numpy()): v for k, v in zip(keys, values)}
+
         example = processor.get_example_from_tensor_dict(example)
         example = processor.tfds_map(example)
 
@@ -65,7 +67,6 @@ def _convert_dataset_to_features(
             truncation=True,
         )
         input_ids, token_type_ids = inputs["input_ids"], inputs["token_type_ids"]
-
         input_ids = tf.constant(input_ids, dtype=tf.int32)
         token_type_ids = tf.constant(token_type_ids, dtype=tf.int32)
 
@@ -80,14 +81,19 @@ def _convert_dataset_to_features(
         return input_ids, token_type_ids, label
 
     def map_fn(example):
-        input_ids, token_type_ids, label = tf.py_function(
-            func=py_map_fn,
-            inp=[list(example.keys()), *example.values()],
-            Tout=[tf.int32, tf.int32, tf.int64],
-        )
-        return input_ids, token_type_ids, label
+        try:
+            input_ids, token_type_ids, label = tf.py_function(
+                func=py_map_fn,
+                inp=[list(example.keys()), *example.values()],
+                Tout=[tf.int32, tf.int32, tf.int64],
+            )
+            return input_ids, token_type_ids, label
+        except:
+            return None, None, None
 
     def pad_fn(input_ids, token_type_ids, label):
+        if (input_ids is None) or (token_type_ids is None) or (label is None):
+            return None, None
         # Zero-pad up to the sequence length.
         padding_length = max_length - tf.shape(input_ids)[-1]
 
@@ -116,7 +122,7 @@ def _convert_dataset_to_features(
 
 def load_glue_dataset(task: str, split: str, tokenizer, max_length: int):
     tfds_task = _to_tfds_task_name(task, split)
-    ds = tfds.load(f"glue/{tfds_task}", split=split)
+    ds = tfds.load(f"glue/{tfds_task}", split=split, shuffle_files=False)
     ds = _convert_dataset_to_features(
         ds,
         tokenizer,
