@@ -1,11 +1,7 @@
 """Code for computing and storing Fishers."""
 import tensorflow as tf
 from model_merging import hf_util
-<<<<<<< HEAD
-
-=======
 from tqdm import tqdm
->>>>>>> 83377bb (fisher computation fix)
 
 def _batch_size(batch):
     return tf.shape(batch["input_ids"])[0]
@@ -63,26 +59,14 @@ def compute_fisher_for_model(
         tf.Variable(tf.zeros(w.shape), trainable=False, name=f"fisher/{w.name}")
         for w in variables
     ]
-<<<<<<< HEAD
-
-    n_examples = 0
-    for batch, _ in dataset:
-=======
-    count = 0
     n_examples = 0
     for batch, _ in tqdm(list(dataset)):
->>>>>>> 83377bb (fisher computation fix)
         n_examples += _batch_size(batch)
         batch_fishers = _compute_exact_fisher_for_batch(
             batch, model, variables, expectation_wrt_logits=expectation_wrt_logits
         )
         for f, bf in zip(fishers, batch_fishers):
             f.assign_add(bf)
-<<<<<<< HEAD
-
-=======
-    print(count)
->>>>>>> 83377bb (fisher computation fix)
     for fisher in fishers:
         fisher.assign(fisher / float(n_examples))
 
