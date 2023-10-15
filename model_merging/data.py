@@ -81,19 +81,14 @@ def _convert_dataset_to_features(
         return input_ids, token_type_ids, label
 
     def map_fn(example):
-        try:
-            input_ids, token_type_ids, label = tf.py_function(
-                func=py_map_fn,
-                inp=[list(example.keys()), *example.values()],
-                Tout=[tf.int32, tf.int32, tf.int64],
-            )
-            return input_ids, token_type_ids, label
-        except:
-            return None, None, None
+        input_ids, token_type_ids, label = tf.py_function(
+            func=py_map_fn,
+            inp=[list(example.keys()), *example.values()],
+            Tout=[tf.int32, tf.int32, tf.int64],
+        )
+        return input_ids, token_type_ids, label
 
     def pad_fn(input_ids, token_type_ids, label):
-        if (input_ids is None) or (token_type_ids is None) or (label is None):
-            return None, None
         # Zero-pad up to the sequence length.
         padding_length = max_length - tf.shape(input_ids)[-1]
 
