@@ -89,8 +89,7 @@ def merge_models():
         os.makedirs("merged_models", exist_ok=True)
         
         for coeffs, merged_model in merged_models:
-            merged_model.save_pretrained(os.path.join("merged_models", config["base_model_name"], '_'.join(tasks))
-)
+            merged_model.save_pretrained(os.path.join("merged_models", config["base_model_name"], '_'.join(tasks)))
 
 
 if __name__ == "__main__":
@@ -106,12 +105,12 @@ if __name__ == "__main__":
         "tasks": tuple(all_tasks),
         "checkpoints": tuple(all_checkpoints),
         "seed": config["seed"],
+        "fisher_samples": config["n_examples"],
         "metrics": {}
     }
 
     # load the evaluator
-    evaluator = ModelEvaluator(
-        device=config["device"], seed=config["seed"], split=config["split"])
+    evaluator = ModelEvaluator(device=config["device"])
 
     # merge models
     if config["use_saved"]:
@@ -124,17 +123,17 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
     for tasks in combinations(all_tasks, config["num_at_once"]):
         print(f"{'_'.join(tasks)}")
-        model = AutoModelForSequenceClassification.from_pretrained(
+        merged_model = AutoModelForSequenceClassification.from_pretrained(
             os.path.join("merged_models",  config["base_model_name"], '_'.join(tasks)), from_tf=True)
         metric = {}
         for task in tasks:
             print(f"{task}")
             base_model = AutoModelForSequenceClassification.from_pretrained(
                 config["checkpoint_names"][task])
-            print(f"{task} Base Model")
-            res = evaluator.evaluate(base_model, tokenizer, task, batch_size=8)
-            print(res)
-            base_model.base_model.load_state_dict(model.base_model.state_dict())
+            # print(f"{task} Base Model")
+            # res = evaluator.evaluate(base_model, tokenizer, task, batch_size=8)
+            # print(res)
+            base_model.base_model.load_state_dict(merged_model.base_model.state_dict())
             print(f"{'_'.join(tasks)} with {task} head")
             res = evaluator.evaluate(base_model, tokenizer, task, batch_size=8)
             print(res)

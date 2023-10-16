@@ -23,33 +23,21 @@ class ModelEvaluator:
    """
    A class to evaluate the performance of GLUE models.
    """
-   def __init__(self, device, seed=0, split="train"):
+   def __init__(self, device):
       self.device = device
       self.datasets = {}
       print("Loading datasets...")
       for task in TASKS:
-         if "validation" in split:
-            if task == "mnli":
-               split = "validation_matched"
-            else:
-               split = "validation"
-
+         if task == "mnli":
+            split = "validation_matched"
+         else:
+            split = "validation"
          dataset = load_dataset("glue", task, split=split)
-
-         try:
-            dataset = dataset.train_test_split(test_size=0.2, seed=seed)
-            testing_set = dataset['test']
-            training_set = dataset['train']
-            self.datasets[task] = {'testing_set': testing_set, 'training_set': training_set}
-            print(f"Loaded dataset {task}")
-         except:
-            print(f"Error Splitting the dataset for {task}")
-            continue
-
-
-   def evaluate(self, model, tokenizer, task, batch_size=4, change_id_mnli=False):
+         self.datasets[task] = dataset
+   
+   def evaluate(self, model, tokenizer, task, batch_size=8, change_id_mnli=False):
       """
-      Evaluates the Given Model and Returns the Metrics for the specified GLUE task
+      Evaluates the Given Model and Returns the Metrics for the specified GLUE/SQUAD task
 
       Args:
       model: The model that needs to be evaluated
@@ -64,7 +52,7 @@ class ModelEvaluator:
       assert task in self.datasets.keys(), f"Dataset for task {task} not found"
       assert batch_size == None or batch_size > 0, "Iterations must be a positive integer"
 
-      testing_set = self.datasets[task]['testing_set']
+      testing_set = self.datasets[task]
 
       self.model = model.to(self.device)
       model.eval()
@@ -79,7 +67,7 @@ class ModelEvaluator:
       predicted_values = []
       referenced_values = []
       
-      print("Getting Predictions...")   
+      print("Getting Predictions...")
       if task == 'sst2':
          param1, _ , _ = testing_set.features.keys()
       else:
