@@ -10,9 +10,11 @@ from model_merging import data
 from model_merging import fisher
 from model_merging import hdf5_util
 
+from torch.profiler import profile, record_function, ProfilerActivity
+import time
+
 FLAGS = flags.FLAGS
 
-# TODO: Add descriptions to flags
 flags.DEFINE_string("model", None, "")
 flags.DEFINE_string("glue_task", None, "")
 flags.DEFINE_string("fisher_path", None, "Path of hdf5 file to save Fisher to.")
@@ -20,7 +22,7 @@ flags.DEFINE_string("fisher_path", None, "Path of hdf5 file to save Fisher to.")
 flags.DEFINE_bool("from_pt", True, "")
 
 flags.DEFINE_string("split", "train", "")
-flags.DEFINE_integer("n_examples", 4096, "")
+flags.DEFINE_integer("n_examples", 128, "")
 flags.DEFINE_integer("batch_size", 2, "")
 flags.DEFINE_integer("sequence_length", 128, "")
 
@@ -47,8 +49,11 @@ def main(_):
     logging.info("Dataset loaded")
 
     logging.info("Starting Fisher computation")
-    fisher_diag = fisher.compute_fisher_for_model(model, ds)
-
+    start_time = time.time()
+    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], with_flops=True) as prof:
+        fisher_diag = fisher.compute_fisher_for_model(model, ds)
+    print(prof.key_averages().table(sort_by="self_cpu_time_total"))
+    print("--- %s seconds ---" % (time.time() - start_time))
     logging.info("Fisher computed. Saving to file...")
     fisher_path = os.path.expanduser(FLAGS.fisher_path)
     hdf5_util.save_variables_to_hdf5(fisher_diag, fisher_path)
